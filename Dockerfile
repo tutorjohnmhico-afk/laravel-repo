@@ -9,6 +9,8 @@ RUN npm run build
 
 FROM php:8.4-fpm
 
+ENV SESSION_DRIVER=file
+
 RUN apt-get update \
  && apt-get install -y --no-install-recommends nginx git unzip libzip-dev libpq-dev \
  && docker-php-ext-install pdo_mysql pdo_pgsql zip bcmath opcache \
