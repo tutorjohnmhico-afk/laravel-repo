@@ -21,3 +21,17 @@ jobs:
       - run: cp .env.example .env
       - run: php artisan key:generate
       - run: composer verify
+      - name: Build and smoke-test the Docker image
+        run: |
+          docker build --tag laravel-ci .
+          app_key=$(php artisan key:generate --show)
+          docker run --detach --name laravel-ci --publish 127.0.0.1:10000:10000 \
+            --env "APP_KEY=$app_key" --env SESSION_DRIVER=array laravel-ci
+          trap 'docker logs laravel-ci; docker rm -f laravel-ci' EXIT
+          curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 1 \
+            http://127.0.0.1:10000/up
+          curl --fail --silent --show-error --output /dev/null http://127.0.0.1:10000/
+          curl --fail --silent --show-error http://127.0.0.1:10000/version \
+            | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+'
+          curl --fail --silent --show-error http://127.0.0.1:10000/build/manifest.json \
+            | jq --exit-status 'has("resources/css/app.css") and has("resources/js/app.js")'
