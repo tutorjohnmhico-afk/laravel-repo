@@ -26,11 +26,12 @@ jobs:
           docker build --tag laravel-ci .
           app_key=$(php artisan key:generate --show)
           docker run --detach --name laravel-ci --publish 127.0.0.1:10000:10000 \
-            --env "APP_KEY=$app_key" laravel-ci
+            --env "APP_KEY=$app_key" --env RENDER_EXTERNAL_URL=https://laravel.example laravel-ci
           trap 'docker logs laravel-ci; docker rm -f laravel-ci' EXIT
           curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 1 \
             http://127.0.0.1:10000/up
-          curl --fail --silent --show-error --output /dev/null http://127.0.0.1:10000/
+          curl --fail --silent --show-error http://127.0.0.1:10000/ --output homepage.html
+          grep -Eq 'href="https://laravel\.example/build/assets/[^" ]+\.css"' homepage.html
           curl --fail --silent --show-error http://127.0.0.1:10000/version \
             | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+'
           curl --fail --silent --show-error http://127.0.0.1:10000/build/manifest.json \
